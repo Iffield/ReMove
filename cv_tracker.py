@@ -213,11 +213,11 @@ class HandDexterityTracker:
             metrics[f'{hand.lower()}_coverage_ratio'] = coverage_ratio
 
             if hand == 'Left':
-                w_acc = 1.0
-                w_qual = 0.77
+                w_acc = 0.70
+                w_qual = 0.50
             else:
-                w_acc = 0.6
-                w_qual = 0.33
+                w_acc = 0.37
+                w_qual = 0.20
                 
             score = int(acc_metric * w_acc + quality_metric * w_qual) + 1
             metrics[f'{hand.lower()}_score'] = min(max(score, 0), 100)
