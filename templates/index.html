@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReMove</title>
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@latest/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="container" id="capture-area">
+        <header>
+            <h1 style="color: #3498db; text-shadow: 3px 3px 0px #fff;"><i class="nes-icon star is-large"></i> ReMove <i class="nes-icon star is-large"></i></h1>
+            <p style="font-family: 'Tahoma', sans-serif; font-size: 1.1em; color: #f7d51d;">เปลี่ยนความไม่รู้เป็นความถนัด</p>
+        </header>
+
+        <section class="upload-section nes-container with-title is-centered is-dark" style="max-width: 500px; margin: 0 auto 30px auto; padding: 1.5rem;">
+            <p class="title" style="font-family: 'Tahoma', sans-serif; font-size: 1em;">เริ่มเกมใหม่</p>
+            <div class="nes-field" style="margin-bottom: 10px;">
+                <input type="file" id="video-upload" accept="video/*" class="nes-input is-dark" style="padding: 5px; font-size: 0.8em; height: auto;">
+            </div>
+            <button type="button" class="nes-btn is-primary" id="start-btn" style="width: 100%; font-family: 'Tahoma', sans-serif; font-weight: bold; padding: 5px;">เริ่มวิเคราะห์</button>
+            
+            <div id="upload-progress-container" style="display: none; margin-top: 15px; text-align: left;">
+                <p style="color: #f7d51d; font-size: 0.8rem; margin-bottom: 5px; font-family: 'Tahoma', sans-serif;" id="loading-text">กำลังวิเคราะห์ข้อมูล...</p>
+                <progress class="nes-progress is-warning" value="0" max="100" id="upload-progress" style="height: 20px;"></progress>
+            </div>
+        </section>
+
+        <!-- Video Replay Area -->
+        <section id="video-replay-section" style="display: none; text-align: center; margin-bottom: 30px;">
+            <div class="nes-container is-dark with-title">
+                <p class="title" style="font-family: 'Tahoma', sans-serif;">การตรวจจับการเคลื่อนไหว</p>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+                    <video id="replay-video" controls autoplay loop muted style="flex: 1; max-width: 100%; border: 4px solid #fff;"></video>
+                    <div style="flex: 1; min-width: 300px; max-width: 100%; background: #000; border: 4px solid #fff; position: relative;">
+                        <!-- Aimlab style canvas replay -->
+                        <canvas id="aimlab-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                        <p style="position: absolute; top: 10px; left: 10px; color: #fff; font-family: 'Tahoma'; font-size: 0.8em;">Aimlab Tracking View</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="results-section" style="display: none;">
+            <div class="nes-container with-title is-dark">
+                <p class="title" style="font-family: 'Tahoma', sans-serif;">สถานะผู้เล่น</p>
+                <div class="status-bars">
+                    <div class="hand-status">
+                        <h3 style="color: #ff6384; font-family: 'Tahoma', sans-serif;">แขนซ้าย</h3>
+                        <progress class="nes-progress" value="0" max="100" id="left-hp"></progress>
+                        <span id="left-score-txt">HP: 0/100</span>
+                    </div>
+                    <div class="hand-status">
+                        <h3 style="color: #36a2eb; font-family: 'Tahoma', sans-serif;">แขนขวา</h3>
+                        <progress class="nes-progress" value="0" max="100" id="right-hp"></progress>
+                        <span id="right-score-txt">HP: 0/100</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="nes-container with-title chart-container is-dark">
+                    <p class="title" style="font-family: 'Tahoma', sans-serif;">สถิติการเคลื่อนไหว</p>
+                    <!-- Increased height to prevent text cutoff -->
+                    <div style="position: relative; height: 450px; width: 100%; padding: 10px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="nes-container with-title hitmap-container is-dark">
+                    <p class="title" style="font-family: 'Tahoma', sans-serif;">แผนผังพื้นที่ (Hit Map)</p>
+                    <div class="hitmaps">
+                        <div class="hitmap-box">
+                            <h4 style="color: #ff6384; font-family: 'Tahoma', sans-serif;">ซ้าย</h4>
+                            <canvas id="hitmap-left" width="200" height="200"></canvas>
+                        </div>
+                        <div class="hitmap-box">
+                            <h4 style="color: #36a2eb; font-family: 'Tahoma', sans-serif;">ขวา</h4>
+                            <canvas id="hitmap-right" width="200" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nes-container is-rounded diagnostic-box is-dark">
+                <div class="message-list">
+                    <section class="message -left">
+                        <i class="nes-bcrikko"></i>
+                        <div class="nes-balloon from-left is-dark">
+                            <p id="typewriter-text" style="line-height: 1.5; color: #fff; font-family: 'Tahoma', sans-serif;"></p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" class="nes-btn is-success" id="save-btn" style="font-family: 'Tahoma', sans-serif;">บันทึกผลลัพธ์</button>
+                <button type="button" class="nes-btn is-error" onclick="location.reload()" style="font-family: 'Tahoma', sans-serif;">เริ่มใหม่</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/main.js?v=3"></script>
+</body>
+</html>
